@@ -16,12 +16,7 @@
   --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05);
   --scrim:rgba(20,24,30,.45);
 }
-@media (prefers-color-scheme:dark){:root{
-  --bg:#121417; --card:#1b1e23; --ink:#eceef1; --muted:#9aa3ad; --line:#2c3138; --sunk:#23272d;
-  --brand:#ff4b42; --brand-soft:#3a1d1c; --ok:#4cc380; --ok-soft:#173326; --warn:#f0a24a; --warn-soft:#3a2a15;
-  --full:#ff6b6b; --full-soft:#3d1f1f; --zero:#9aa3ad; --zero-soft:#23272d;
-  --ja:#e59ad2; --zh:#f08a7e; --en:#7cc4a0; --math:#8fb4f0; --sci:#f1c46b; --shadow:none; --scrim:rgba(0,0,0,.6);
-}}
+html{color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,-apple-system,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit}
@@ -146,7 +141,6 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
 .cell .subrow{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .badge{font-size:11px;font-weight:800;border-radius:5px;padding:1px 6px;color:#fff;white-space:nowrap}
 .badge.yes{background:var(--ok)} .badge.no{background:var(--full)}
-@media (prefers-color-scheme:dark){.badge{color:#111}}
 .cell .ti{font-size:13px;font-weight:700;overflow-wrap:anywhere}
 .cell .te{font-size:12px;color:var(--muted)}
 .dempty{color:var(--muted);font-size:13px;text-align:center;padding:10px 0}
@@ -170,6 +164,26 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:40;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
 .modal{background:var(--bg);border-radius:16px;width:min(860px,100%);overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.25)}
 [hidden]{display:none!important}
+/* 같은 선생님 다른 시간 */
+.alts{display:grid;gap:6px;justify-items:center;min-width:0;flex:1}
+.alts .ah{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.02em}
+.alts .ar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.alt{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.alt:hover{border-color:var(--ink)}
+.alt small{font-weight:500;color:var(--muted);margin-left:4px}
+.alt.s1{background:var(--warn-soft)} .alt.s2{background:var(--ok-soft)} .alt.s4{background:var(--full-soft);color:var(--full)}
+@media (max-width:760px){.ph{flex-wrap:wrap}.alts{order:3;flex-basis:100%;justify-items:start}.alts .ar{justify-content:flex-start}}
+/* 내 신청 명단 */
+.mybtn{border:1px solid var(--brand);background:var(--card);color:var(--brand);border-radius:999px;padding:4px 14px;font-weight:700;font-size:14px;cursor:pointer}
+.mybtn b{background:var(--brand);color:#fff;border-radius:999px;padding:0 7px;margin-left:4px;font-size:12px}
+.myhead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px 6px}
+.myhead h3{margin:0;font-size:18px;font-weight:800}
+.mybody{padding:8px 20px 20px;display:grid;gap:10px}
+.mybody table{min-width:640px}
+.mybody td{padding:9px 10px}
+/* 알림 */
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f8a4c;color:#fff;padding:13px 20px;border-radius:12px;font-weight:700;font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:60;max-width:calc(100% - 32px);text-align:center}
+.toast.err{background:#b35c00}
 </style>
 </head>
 <body>
@@ -183,7 +197,7 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
     <span>✅ <b>2명 이상</b>이면 개설</span>
     <span>⏱ 한 회 <b>20분</b></span>
     <span class="live off" id="live"><i></i><span id="liveText">불러오는 중</span></span>
-    <button class="linkbtn" id="reload" type="button">새로고침</button>
+    <button class="mybtn" id="myOpen" type="button">내 신청 명단 보기<b id="myCount">0</b></button>
   </div>
 
   <div class="banner" id="banner" hidden></div>
@@ -227,6 +241,8 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
   <div class="msg err" id="nameErr" hidden></div>
   <button class="btn" type="submit">시작하기</button>
 </form></div>
+<div class="scrim" id="myScrim" hidden><div class="modal" id="myModal" role="dialog" aria-modal="true" aria-label="내 신청 명단"></div></div>
+<div class="toast" id="toast" role="status" hidden></div>
 <div class="scrim" id="scrim" hidden><div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="상담 요약과 신청"></div></div>
 
 <script>
@@ -335,6 +351,51 @@ function renderList(list){
     ${sorted.length > shown.length ? `<div class="more"><button class="chip" type="button" data-act="more">나머지 ${sorted.length-shown.length}개 회차 더 보기</button></div>` : ""}`;
 }
 
+/* ───────── 같은 선생님의 다른 회차 (눌러서 바로 이동) ───────── */
+const byTime = (a,b)=>(DAYS.indexOf(a.d)-DAYS.indexOf(b.d)) || (toMin(a.s)-toMin(b.s));
+function altsHTML(s){
+  const mine = data.slots.filter(x=>x.teacher===s.teacher && x.id!==s.id).sort(byTime);
+  const same = mine.filter(x=>x.title===s.title), other = mine.filter(x=>x.title!==s.title);
+  const chip = (x, withTitle)=>{ const n = count(x.id);
+    return `<button class="alt ${lvl(n)}" type="button" data-act="goto" data-id="${x.id}" title="${esc(x.title)}">${esc(x.d)} ${esc(x.s)}~${esc(x.e)} (${n}/${CAP()})${withTitle?`<small>${esc(short(x.title))}</small>`:""}</button>`; };
+  if(!same.length && !other.length) return "";
+  return `<div class="alts">
+    ${same.length ? `<span class="ah">같은 수업 다른 시간대</span><div class="ar">${same.map(x=>chip(x,false)).join("")}</div>` : ""}
+    ${other.length ? `<span class="ah">${esc(s.teacher)} 선생님 다른 수업</span><div class="ar">${other.map(x=>chip(x,true)).join("")}</div>` : ""}
+  </div>`;
+}
+
+/* ───────── 내 신청 명단 ───────── */
+let myOpen = false, myCancel = null, myMsg = null;
+function myRows(){
+  if(!data || !me) return [];
+  const out = [];
+  data.slots.forEach(s=>people(s.id).forEach(p=>{ if(p.c===me) out.push({s, p}); }));
+  return out.sort((a,b)=>byTime(a.s,b.s));
+}
+function renderMy(){
+  const rows = myRows();
+  $("#myCount").textContent = rows.length;
+  const sc = $("#myScrim"), m = $("#myModal");
+  if(!myOpen){ sc.hidden = true; m.innerHTML = ""; return; }
+  sc.hidden = false;
+  const body = rows.length ? `<div class="tblbox"><table>
+    <thead><tr><th>요일·시간</th><th>강의명</th><th>선생님</th><th>회원</th><th>전화번호</th><th style="text-align:center">인원</th><th></th></tr></thead>
+    <tbody>${rows.map(({s,p})=>{ const n = count(s.id), on = myCancel && myCancel.k===p.k;
+      return `<tr><td class="time">${esc(s.d)} ${esc(s.s)}~${esc(s.e)}</td><td><b>${esc(short(s.title))}</b></td><td class="nw">${esc(s.teacher)}</td>
+        <td class="nw">${esc(p.n)}</td><td class="nw">${esc(p.p)}</td><td class="cnt">${countCell(n)}</td>
+        <td class="nw">${on ? "" : `<button class="pbtn" type="button" data-act="my-cancel" data-slot="${s.id}" data-k="${p.k}">취소</button>`}</td></tr>
+        ${on ? `<tr><td colspan="7"><form class="cancelbox" id="myCancelForm" data-slot="${s.id}" data-k="${p.k}"><span>${esc(p.n)} 님의 전화번호 전체를 입력하세요</span>
+          <input id="mPhone" type="tel" inputmode="tel" placeholder="010-0000-0000" maxlength="13" aria-label="취소할 신청의 전화번호">
+          <button class="pbtn danger" type="submit">신청 취소</button><button class="pbtn" type="button" data-act="my-cancel-no">그만두기</button></form></td></tr>` : ""}`; }).join("")}
+    </tbody></table></div>` : `<div class="empty">아직 ${esc(me)} 상담사님이 등록한 신청이 없습니다.</div>`;
+  m.innerHTML = `<div class="myhead"><h3>내 신청 명단 <span class="hint" style="font-weight:500;font-size:14px">${esc(me)} · ${rows.length}건</span></h3>
+    <button class="close" type="button" data-act="my-close">닫기 ✕</button></div>
+    <div class="mybody"><p class="hint" style="margin:0">${esc(me)} 상담사님이 등록한 신청만 보입니다. 회원 정보는 가려서 표시합니다.</p>
+    ${myMsg ? `<div class="msg ${myMsg.kind}" role="status">${esc(myMsg.text)}</div>` : ""}${body}</div>`;
+}
+function toast(text, kind){ const t = $("#toast"); t.textContent = text; t.className = "toast" + (kind==="err"?" err":""); t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(()=>t.hidden = true, 4500); }
+
 /* ───────── 상담 패널 (목록·시간표 공용) ───────── */
 function panelHTML(s){
   const n = count(s.id), full = n >= CAP(), ppl = people(s.id), inf = info(s.title);
@@ -351,6 +412,7 @@ function panelHTML(s){
   return `<div class="panel">
     <div class="ph"><div><h3>${esc(s.title)}</h3>
       <div class="meta">${esc(s.d)} ${esc(s.s)}~${esc(s.e)} · ${esc(s.teacher)} 선생님 · ${esc(s.subj)} · ${esc(s.type)}</div></div>
+      ${altsHTML(s)}
       <button class="close" type="button" data-act="close">닫기 ✕</button></div>
     <div class="pgrid">
       <div style="display:grid;gap:12px;align-content:start">
@@ -415,7 +477,7 @@ function renderIntro(){
 function render(){
   const a = document.activeElement, fid = a && a.id;
   const keep = {};
-  ["pName","pPhone","cPhone"].forEach(k=>{ const el = document.getElementById(k); if(el) keep[k] = el.value; });
+  ["pName","pPhone","cPhone","mPhone"].forEach(k=>{ const el = document.getElementById(k); if(el) keep[k] = el.value; });
   let s0 = null; try{ if(fid) s0 = a.selectionStart; }catch(e){}
 
   renderFilters();
@@ -427,6 +489,7 @@ function render(){
   const m = $("#modal"), sc = $("#scrim");
   if(openWhere==="modal" && openId && slotById(openId)){ m.innerHTML = panelHTML(slotById(openId)); sc.hidden = false; }
   else { sc.hidden = true; m.innerHTML = ""; }
+  renderMy();
 
   Object.entries(keep).forEach(([k,v])=>{ const el = document.getElementById(k); if(el) el.value = v; });
   if(fid){ const el = document.getElementById(fid); if(el){ el.focus({preventScroll:true}); try{ if(s0!=null) el.setSelectionRange(s0,s0); }catch(e){} } }
@@ -478,6 +541,10 @@ document.addEventListener("click", ev=>{
     const act = a.dataset.act;
     if(act==="close") return closePanel();
     if(act==="more"){ showAll = true; render(); return; }
+    if(act==="goto"){ openId = a.dataset.id; openWhere = "modal"; cancelK = null; panelMsg = null; render(); $("#modal .close")?.focus(); return; }
+    if(act==="my-close"){ myOpen = false; myCancel = null; myMsg = null; render(); return; }
+    if(act==="my-cancel"){ myCancel = {slot:a.dataset.slot, k:Number(a.dataset.k)}; myMsg = null; render(); $("#mPhone")?.focus(); return; }
+    if(act==="my-cancel-no"){ myCancel = null; render(); return; }
     if(act==="cancel-open"){ cancelK = Number(a.dataset.k); panelMsg = null; render(); $("#cPhone")?.focus(); return; }
     if(act==="cancel-no"){ cancelK = null; render(); return; }
     if(act==="show"){ F.q = short(a.dataset.t); F.subject = "전체"; F.type = "전체"; F.day = "전체"; F.period = "전체"; render();
@@ -490,15 +557,18 @@ document.addEventListener("click", ev=>{
   const cell = ev.target.closest("[data-modal]");
   if(cell) return openPanel(cell.dataset.modal, "modal");
   if(ev.target === $("#scrim")) return closePanel();
+  if(ev.target === $("#myScrim")){ myOpen = false; myCancel = null; myMsg = null; return render(); }
+  if(ev.target.closest("#myOpen")){ if(!me) return askName(); myOpen = true; myCancel = null; myMsg = null; return render(); }
 });
 document.addEventListener("keydown", ev=>{
+  if(ev.key==="Escape" && myOpen){ myOpen = false; myCancel = null; myMsg = null; return render(); }
   if(ev.key==="Escape" && openId) return closePanel();
   if((ev.key==="Enter" || ev.key===" ") && ev.target.matches("tr[data-open]")){ ev.preventDefault(); openPanel(ev.target.dataset.open, "list"); }
 });
 document.addEventListener("input", ev=>{
   const t = ev.target;
   if(t.id==="q"){ F.q = t.value; showAll = false; render(); return; }
-  if(t.id==="pPhone" || t.id==="cPhone"){
+  if(t.id==="pPhone" || t.id==="cPhone" || t.id==="mPhone"){
     const v = t.value.replace(/\D/g,"").slice(0,11);
     t.value = v.length<4 ? v : v.length<8 ? `${v.slice(0,3)}-${v.slice(3)}` : `${v.slice(0,3)}-${v.slice(3,v.length-4)}-${v.slice(-4)}`;
   }
@@ -508,35 +578,39 @@ document.addEventListener("change", ev=>{ if(ev.target.id==="fopen"){ F.open = e
 const PHONE = /^01\d-\d{3,4}-\d{4}$/;
 document.addEventListener("submit", async ev=>{
   const form = ev.target;
-  if(form.id !== "regForm" && form.id !== "cancelForm") return;
+  if(!["regForm","cancelForm","myCancelForm"].includes(form.id)) return;
   ev.preventDefault();
   if(!me){ askName(); return; }
   if(busy) return;
-  const slot = openId;
+  const fromMy = form.id === "myCancelForm";
+  const fail = text => { if(fromMy) myMsg = {kind:"err", text}; else panelMsg = {kind:"err", text}; render(); };
   let body;
   if(form.id === "regForm"){
     const name = $("#pName").value.trim(), phone = $("#pPhone").value.trim();
-    if(name.length < 2){ panelMsg = {kind:"err", text:"회원 이름을 2자 이상 입력해 주세요."}; return render(); }
-    if(!PHONE.test(phone)){ panelMsg = {kind:"err", text:"전화번호를 010-0000-0000 형식으로 입력해 주세요."}; return render(); }
-    body = {action:"apply", slot, name, phone, counselor:me};
+    if(name.length < 2) return fail("회원 이름을 2자 이상 입력해 주세요.");
+    if(!PHONE.test(phone)) return fail("전화번호를 010-0000-0000 형식으로 입력해 주세요.");
+    body = {action:"apply", slot:openId, name, phone, counselor:me};
   } else {
-    const phone = $("#cPhone").value.trim();
-    if(!PHONE.test(phone)){ panelMsg = {kind:"err", text:"신청할 때 입력한 전화번호 전체를 010-0000-0000 형식으로 입력해 주세요."}; return render(); }
-    body = {action:"cancel", slot, k:Number(form.dataset.k), phone, counselor:me};
+    const phone = (fromMy ? $("#mPhone") : $("#cPhone")).value.trim();
+    if(!PHONE.test(phone)) return fail("신청할 때 입력한 전화번호 전체를 010-0000-0000 형식으로 입력해 주세요.");
+    body = {action:"cancel", slot: fromMy ? form.dataset.slot : openId, k:Number(form.dataset.k), phone, counselor:me};
   }
-  busy = true; panelMsg = null; render();
+  busy = true; panelMsg = null; myMsg = null;
+  const btn = form.querySelector("button[type=submit]"); if(btn){ btn.disabled = true; btn.textContent = "처리 중…"; }
   try{
     const j = await post(body);
     applyState(j);
-    panelMsg = {kind: j.ok ? "ok" : "err", text: j.message || (j.ok ? "처리했습니다." : "처리하지 못했습니다.")};
+    const text = j.message || (j.ok ? "처리했습니다." : "처리하지 못했습니다.");
     if(j.ok){
-      ["pName","pPhone","cPhone"].forEach(k=>{ const el = document.getElementById(k); if(el) el.value = ""; });
-      cancelK = null;
-    }
-  }catch(e){ panelMsg = {kind:"err", text:"네트워크 오류로 처리하지 못했습니다. 잠시 후 다시 시도해 주세요."}; }
+      ["pName","pPhone","cPhone","mPhone"].forEach(k=>{ const el = document.getElementById(k); if(el) el.value = ""; });
+      cancelK = null; myCancel = null;
+      if(body.action === "apply"){ openId = null; openWhere = null; }   // 신청이 끝나면 창을 닫고 알림으로 알려줌
+      toast("✅ " + text);
+    } else if(fromMy) myMsg = {kind:"err", text};
+    else panelMsg = {kind:"err", text};
+  }catch(e){ const t = "네트워크 오류로 처리하지 못했습니다. 잠시 후 다시 시도해 주세요."; if(fromMy) myMsg = {kind:"err", text:t}; else panelMsg = {kind:"err", text:t}; }
   finally{ busy = false; render(); liveText(); }
 });
-$("#reload").addEventListener("click", load);
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") load(); });
 
 /* ───────── 상담사 이름 (본인 성명 3글자, 이 브라우저에 계속 유지) ───────── */
