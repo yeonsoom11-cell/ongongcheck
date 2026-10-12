@@ -133,16 +133,18 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
 .dhd small{font-weight:500;color:var(--muted);margin-left:4px;font-size:12px}
 .dlist{display:grid;gap:7px;align-content:start}
 .cell{position:relative;display:grid;gap:3px;text-align:left;width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 10px 10px;cursor:pointer;background:var(--card);line-height:1.35}
-.cell.s0{background:var(--zero-soft)} .cell.s1{background:var(--warn-soft)} .cell.s2{background:var(--ok-soft)} .cell.s4{background:var(--full-soft)}
+.cell.c0{background:#ffffff} .cell.c1{background:#e3f5e9} .cell.c2{background:#b9e5c8} .cell.c3{background:#86cfa1} .cell.c4{background:#4b5563;border-color:#4b5563;color:#fff}
+.cell.c4 .te,.cell.c4 .subj{color:#e5e7eb!important}
 .cell:hover{border-color:var(--ink)}
 .cell .tm{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;padding-right:52px}
 .cell .n{position:absolute;top:7px;right:7px;font-size:16px;padding:1px 8px;background:var(--card)}
-.cell.s0 .n{color:var(--zero)} .cell.s1 .n{color:var(--warn)} .cell.s2 .n{color:var(--ok)} .cell.s4 .n{color:var(--full)}
+.cell.c0 .n{color:var(--zero)} .cell.c1 .n,.cell.c2 .n,.cell.c3 .n{color:#166534} .cell.c4 .n{color:#374151}
 .cell .subrow{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .badge{font-size:11px;font-weight:800;border-radius:5px;padding:1px 6px;color:#fff;white-space:nowrap}
 .badge.yes{background:var(--ok)} .badge.no{background:var(--full)}
-.cell .ti{font-size:13px;font-weight:700;overflow-wrap:anywhere}
-.cell .te{font-size:12px;color:var(--muted)}
+.cell{height:124px;align-content:start;overflow:hidden}
+.cell .ti{font-size:13px;font-weight:700;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.cell .te{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dempty{color:var(--muted);font-size:13px;text-align:center;padding:10px 0}
 @media (max-width:760px){
   .weekbox{overflow:visible}
@@ -209,23 +211,25 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
   </section>
 
   <section class="card">
-    <h2>회차 목록</h2>
-    <p class="hint">신청 인원이 많은 회차가 위에 옵니다. 정원이 찬 회차는 맨 아래에 있습니다. 줄을 누르면 상담 요약과 신청 칸이 열립니다.</p>
-    <div id="list"></div>
-  </section>
-
-  <section class="card">
     <h2>요일별 20분 시간표</h2>
     <p class="hint">각 칸 오른쪽 위 숫자가 현재 인원입니다. 칸을 누르면 상담 요약과 신청 칸이 열립니다.</p>
     <div class="legend">
-      <span><i style="background:var(--zero-soft);border:1px solid var(--line)"></i>0명</span>
-      <span><i style="background:var(--warn-soft)"></i>1명 · 개설 미달</span>
-      <span><i style="background:var(--ok-soft)"></i>2~3명 · 개설 가능</span>
-      <span><i style="background:var(--full-soft)"></i>4명 · 마감</span>
+      <span><i style="background:#fff;border:1px solid var(--line)"></i>0명</span>
+      <span><i style="background:#e3f5e9"></i>1명</span>
+      <span><i style="background:#b9e5c8"></i>2명</span>
+      <span><i style="background:#86cfa1"></i>3명</span>
+      <span><i style="background:#4b5563"></i>4명 · 배정 완료</span>
       <span><span class="badge yes">배정가능</span><span class="badge no">배정불가</span></span>
     </div>
     <div class="weekbox"><div class="week" id="week"></div></div>
   </section>
+
+  <section class="card">
+    <h2>회차 목록</h2>
+    <p class="hint">신청 인원이 많은 회차가 위에 옵니다. 정원이 찬 회차는 맨 아래에 있습니다. 줄을 누르면 상담 요약과 신청 창이 뜹니다.</p>
+    <div id="list"></div>
+  </section>
+
 
   <section class="card">
     <h2>수업 소개</h2>
@@ -334,7 +338,7 @@ function renderList(list){
   const LIMIT = 30;
   const shown = showAll ? sorted : sorted.slice(0, Math.max(LIMIT, sorted.findIndex(s=>s.id===openId)+1));
   const rows = shown.map(s=>{
-    const n = count(s.id), open = openWhere==="list" && openId===s.id;
+    const n = count(s.id), open = openId===s.id;
     return `<tr class="row ${open?"open":""}" data-open="${s.id}" tabindex="0" aria-expanded="${open}">
       <td class="nw"><span class="typ">${esc(s.type)}</span></td>
       <td class="nw"><b>${esc(s.d)}</b></td>
@@ -343,7 +347,7 @@ function renderList(list){
       <td class="sum">${esc(info(s.title).one)}</td>
       <td class="nw">${esc(s.teacher)}</td>
       <td class="cnt">${countCell(n)}</td>
-    </tr>${open ? `<tr class="panelrow"><td colspan="7">${panelHTML(s)}</td></tr>` : ""}`;
+    </tr>`;
   }).join("");
   box.innerHTML = `<div class="tblbox"><table>
     <thead><tr><th>수업 유형</th><th>요일</th><th>시간</th><th>강의명</th><th>수업 내용 요약</th><th>선생님</th><th style="text-align:center">인원</th></tr></thead>
@@ -355,13 +359,12 @@ function renderList(list){
 const byTime = (a,b)=>(DAYS.indexOf(a.d)-DAYS.indexOf(b.d)) || (toMin(a.s)-toMin(b.s));
 function altsHTML(s){
   const mine = data.slots.filter(x=>x.teacher===s.teacher && x.id!==s.id).sort(byTime);
-  const same = mine.filter(x=>x.title===s.title), other = mine.filter(x=>x.title!==s.title);
+  const same = mine.filter(x=>x.title===s.title);
   const chip = (x, withTitle)=>{ const n = count(x.id);
     return `<button class="alt ${lvl(n)}" type="button" data-act="goto" data-id="${x.id}" title="${esc(x.title)}">${esc(x.d)} ${esc(x.s)}~${esc(x.e)} (${n}/${CAP()})${withTitle?`<small>${esc(short(x.title))}</small>`:""}</button>`; };
-  if(!same.length && !other.length) return "";
+  if(!same.length) return "";
   return `<div class="alts">
-    ${same.length ? `<span class="ah">같은 수업 다른 시간대</span><div class="ar">${same.map(x=>chip(x,false)).join("")}</div>` : ""}
-    ${other.length ? `<span class="ah">${esc(s.teacher)} 선생님 다른 수업</span><div class="ar">${other.map(x=>chip(x,true)).join("")}</div>` : ""}
+    <span class="ah">같은 수업명 다른 시간대</span><div class="ar">${same.map(x=>chip(x,false)).join("")}</div>
   </div>`;
 }
 
@@ -447,7 +450,7 @@ function renderWeek(list){
     return `<div style="display:grid;gap:7px;align-content:start;min-width:0"><div class="dhd">${d}<small>${ds.length}회</small></div>
       <div class="dlist">${ds.length ? ds.map(s=>{
         const n = count(s.id), full = n >= CAP();
-        return `<button type="button" class="cell ${lvl(n)}" data-modal="${s.id}" aria-label="${esc(`${d} ${s.s} ${s.title} ${s.teacher}, ${n}/${CAP()}명`)}">
+        return `<button type="button" class="cell c${Math.min(n,4)}" data-modal="${s.id}" title="${esc(s.title)}" aria-label="${esc(`${d} ${s.s} ${s.title} ${s.teacher}, ${n}/${CAP()}명`)}">
           <span class="tm">${esc(s.s)}~${esc(s.e)}</span>
           <span class="n">${n}<small>/${CAP()}</small></span>
           <span class="subrow"><span class="subj sj-${SKEY[s.subj]||""}">${esc(s.subj)}</span><span class="badge ${full?"no":"yes"}">${full?"배정불가":"배정가능"}</span></span>
@@ -553,7 +556,7 @@ document.addEventListener("click", ev=>{
   }
   if(ev.target.closest(".panel")) return;
   const row = ev.target.closest("[data-open]");
-  if(row) return openPanel(row.dataset.open, "list");
+  if(row) return openPanel(row.dataset.open, "modal");
   const cell = ev.target.closest("[data-modal]");
   if(cell) return openPanel(cell.dataset.modal, "modal");
   if(ev.target === $("#scrim")) return closePanel();
@@ -563,7 +566,7 @@ document.addEventListener("click", ev=>{
 document.addEventListener("keydown", ev=>{
   if(ev.key==="Escape" && myOpen){ myOpen = false; myCancel = null; myMsg = null; return render(); }
   if(ev.key==="Escape" && openId) return closePanel();
-  if((ev.key==="Enter" || ev.key===" ") && ev.target.matches("tr[data-open]")){ ev.preventDefault(); openPanel(ev.target.dataset.open, "list"); }
+  if((ev.key==="Enter" || ev.key===" ") && ev.target.matches("tr[data-open]")){ ev.preventDefault(); openPanel(ev.target.dataset.open, "modal"); }
 });
 document.addEventListener("input", ev=>{
   const t = ev.target;
