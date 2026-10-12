@@ -298,12 +298,19 @@ function chips(key, opts){
 function renderFilters(){
   const types = typesFor(F.subject);
   if(F.type !== "전체" && !types.includes(F.type)) F.type = "전체";
+  // 지금 고른 과목·유형(·시간대/요일)에 실제 수업이 있는 요일·시간대만 버튼으로 보여줌
+  const pool = data ? data.slots.filter(s=>(F.subject==="전체" || s.subj===F.subject) && (F.type==="전체" || s.type===F.type)) : [];
+  const inPeriod = (s, pn) => { const p = PERIODS.find(x=>x.n===pn), m = toMin(s.s); return m>=p.a && m<p.b; };
+  const days = DAYS.filter(d=>pool.some(s=>s.d===d && (F.period==="전체" || inPeriod(s, F.period))));
+  if(F.day !== "전체" && !days.includes(F.day)) F.day = "전체";
+  const periods = PERIODS.map(p=>p.n).filter(pn=>pool.some(s=>inPeriod(s, pn) && (F.day==="전체" || s.d===F.day)));
+  if(F.period !== "전체" && !periods.includes(F.period)) F.period = "전체";
   const typeRow = types.length > 1 ? `<div class="fgroup"><span class="lbl">수업 유형</span>${chips("type", types)}</div>` : "";
   $("#filters").innerHTML = `
     <div class="fgroup"><span class="lbl">과목</span>${chips("subject", subjects())}</div>
     ${typeRow}
-    <div class="fgroup"><span class="lbl">요일</span>${chips("day", DAYS)}</div>
-    <div class="fgroup"><span class="lbl">시간대</span>${chips("period", PERIODS.map(p=>p.n))}</div>
+    <div class="fgroup"><span class="lbl">요일</span>${chips("day", data ? days : DAYS)}</div>
+    <div class="fgroup"><span class="lbl">시간대</span>${chips("period", data ? periods : PERIODS.map(p=>p.n))}</div>
     <div class="frow">
       <input type="search" id="q" placeholder="강의명·선생님 검색" aria-label="강의명·선생님 검색">
       <label class="toggle"><input type="checkbox" id="fopen" ${F.open?"checked":""}> 신청 가능한 회차만</label>
