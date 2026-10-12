@@ -103,6 +103,13 @@ tr.panelrow>td{padding:0;background:var(--bg)}
 .person{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14.5px;border:1px solid var(--line);border-radius:8px;padding:7px 10px}
 .person .who{font-variant-numeric:tabular-nums}
 .person .who span{color:var(--muted);margin-left:8px;font-size:13.5px}
+.person .by{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.person .by b{color:var(--ink)}
+.me{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);border-radius:999px;padding:3px 12px;font-size:14px}
+.me b{color:var(--brand)}
+.namebox{background:var(--card);border-radius:16px;padding:24px;width:min(420px,100%);display:grid;gap:12px;margin-top:10vh}
+.namebox h2{margin:0}
+.namebox input{width:100%;font-size:18px;padding:11px 13px;border-radius:10px;border:1px solid var(--line);background:var(--bg);letter-spacing:.1em}
 .pbtn{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:3px 10px;cursor:pointer;font-size:13px;font-weight:700}
 .pbtn.danger{color:var(--full);border-color:var(--full)}
 .cancelbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--sunk);border-radius:8px;padding:9px 10px;font-size:13.5px}
@@ -171,6 +178,7 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
   <h1>온공클래스 입회 신청</h1>
   <p class="sub">과목·요일·시간대로 수업을 찾고, 목록이나 시간표를 눌러 상담 요약을 확인한 뒤 회원 이름과 전화번호로 신청하세요. 신청 현황은 모든 상담사에게 실시간으로 공유됩니다.</p>
   <div class="info">
+    <span class="me" id="meBox" hidden>상담사 <b id="meName"></b> <button class="linkbtn" id="meChange" type="button" style="font-size:13px">변경</button></span>
     <span>👥 회차별 정원 <b>4명</b></span>
     <span>✅ <b>2명 이상</b>이면 개설</span>
     <span>⏱ 한 회 <b>20분</b></span>
@@ -212,6 +220,13 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
   </section>
 </div>
 
+<div class="scrim" id="nameScrim" hidden><form class="namebox" id="nameForm" novalidate>
+  <h2>상담사 이름 입력</h2>
+  <p class="hint" style="margin:0">본인 성명 3글자를 입력하세요. 신청을 등록하면 이 이름이 함께 기록되고, 이 브라우저에서는 계속 유지됩니다.</p>
+  <input id="meInput" maxlength="3" placeholder="홍길동" autocomplete="off" aria-label="상담사 성명 3글자">
+  <div class="msg err" id="nameErr" hidden></div>
+  <button class="btn" type="submit">시작하기</button>
+</form></div>
 <div class="scrim" id="scrim" hidden><div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="상담 요약과 신청"></div></div>
 
 <script>
@@ -238,6 +253,9 @@ let data = null;            // {cap,min,slots,info,people}
 let lastLoad = 0, busy = false, loadFail = false;
 const F = {subject:"전체", type:"전체", day:"전체", period:"전체", q:"", open:false};
 let openId = null, openWhere = null, cancelK = null, panelMsg = null, showAll = false;
+const ME_KEY = "ongong-counselor";
+let me = ""; try{ me = localStorage.getItem(ME_KEY) || ""; }catch(e){}
+if(!/^[가-힣]{3}$/.test(me)) me = "";
 
 const CAP = () => (data && data.cap) || 4;
 const MIN = () => (data && data.min) || 2;
@@ -323,7 +341,8 @@ function panelHTML(s){
   const seats = Array.from({length:CAP()},(_,i)=>`<i class="${i<n?"on":""}"></i>`).join("");
   const plist = ppl.length ? ppl.map(p=>`
       <div class="person"><span class="who">${esc(p.n)}<span>${esc(p.p)}</span></span>
-        ${cancelK===p.k ? "" : `<button class="pbtn" type="button" data-act="cancel-open" data-k="${p.k}">취소</button>`}</div>
+        <span style="display:flex;gap:8px;align-items:center"><span class="by">${p.c ? `등록 <b>${esc(p.c)}</b>` : ""}</span>
+        ${cancelK===p.k || (p.c && p.c!==me) ? "" : `<button class="pbtn" type="button" data-act="cancel-open" data-k="${p.k}">취소</button>`}</span></div>
       ${cancelK===p.k ? `<form class="cancelbox" id="cancelForm" data-k="${p.k}"><span>${esc(p.n)} 님의 전화번호 전체를 입력하세요</span>
         <input id="cPhone" type="tel" inputmode="tel" placeholder="010-0000-0000" maxlength="13" aria-label="취소할 신청의 전화번호">
         <button class="pbtn danger" type="submit">신청 취소</button><button class="pbtn" type="button" data-act="cancel-no">그만두기</button></form>` : ""}`).join("")
@@ -491,6 +510,7 @@ document.addEventListener("submit", async ev=>{
   const form = ev.target;
   if(form.id !== "regForm" && form.id !== "cancelForm") return;
   ev.preventDefault();
+  if(!me){ askName(); return; }
   if(busy) return;
   const slot = openId;
   let body;
@@ -498,11 +518,11 @@ document.addEventListener("submit", async ev=>{
     const name = $("#pName").value.trim(), phone = $("#pPhone").value.trim();
     if(name.length < 2){ panelMsg = {kind:"err", text:"회원 이름을 2자 이상 입력해 주세요."}; return render(); }
     if(!PHONE.test(phone)){ panelMsg = {kind:"err", text:"전화번호를 010-0000-0000 형식으로 입력해 주세요."}; return render(); }
-    body = {action:"apply", slot, name, phone};
+    body = {action:"apply", slot, name, phone, counselor:me};
   } else {
     const phone = $("#cPhone").value.trim();
     if(!PHONE.test(phone)){ panelMsg = {kind:"err", text:"신청할 때 입력한 전화번호 전체를 010-0000-0000 형식으로 입력해 주세요."}; return render(); }
-    body = {action:"cancel", slot, k:Number(form.dataset.k), phone};
+    body = {action:"cancel", slot, k:Number(form.dataset.k), phone, counselor:me};
   }
   busy = true; panelMsg = null; render();
   try{
@@ -518,6 +538,20 @@ document.addEventListener("submit", async ev=>{
 });
 $("#reload").addEventListener("click", load);
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") load(); });
+
+/* ───────── 상담사 이름 (본인 성명 3글자, 이 브라우저에 계속 유지) ───────── */
+function showMe(){ $("#meBox").hidden = !me; $("#meName").textContent = me; }
+function askName(){ const sc = $("#nameScrim"); sc.hidden = false; const i = $("#meInput"); i.value = me; $("#nameErr").hidden = true; i.focus(); }
+$("#nameForm").addEventListener("submit", ev=>{
+  ev.preventDefault();
+  const v = $("#meInput").value.trim();
+  if(!/^[가-힣]{3}$/.test(v)){ const e = $("#nameErr"); e.textContent = "본인 성명을 한글 3글자로 입력해 주세요. (예: 홍길동)"; e.hidden = false; return; }
+  me = v; try{ localStorage.setItem(ME_KEY, me); }catch(e){}
+  $("#nameScrim").hidden = true; showMe(); render();
+});
+$("#meChange").addEventListener("click", askName);
+showMe();
+if(!me) askName();
 
 render();
 if(SCRIPT_URL.startsWith("PASTE")){ banner("관리자 안내: index.html의 SCRIPT_URL에 Apps Script 웹 앱 주소를 넣어 주세요."); liveText(); }
