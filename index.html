@@ -13,6 +13,7 @@
   --ok:#1f8a4c; --ok-soft:#e3f4ea; --warn:#b35c00; --warn-soft:#fff1dc;
   --full:#c62828; --full-soft:#fde4e4; --zero:#7a838d; --zero-soft:#f0f2f5;
   --ja:#8a3a76; --zh:#b8342a; --en:#2f6b4f; --math:#2457a6; --sci:#8a5a00;
+  --neon:#ff2d95; --neon-glow:rgba(255,45,149,.45);
   --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05);
   --scrim:rgba(20,24,30,.45);
 }
@@ -49,6 +50,16 @@ h2{font-size:18px;margin:0 0 4px;font-weight:800;letter-spacing:-.01em}
 .toggle input{width:16px;height:16px;accent-color:var(--brand)}
 .cntline{font-size:13.5px;color:var(--muted)}
 
+/* 대표 강좌 / 강조 보기 제외 */
+.viewbar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.vbtn{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:7px 16px;cursor:pointer;font-weight:800;font-size:15px}
+.vbtn small{font-weight:700;color:var(--muted);margin-left:6px;font-size:12.5px}
+.vbtn:hover{border-color:var(--muted)}
+.vbtn[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--card)}
+.vbtn[aria-pressed="true"] small{color:inherit;opacity:.8}
+.vbtn.rep[aria-pressed="true"]{border-color:var(--neon);background:var(--neon);color:#fff;box-shadow:0 0 12px var(--neon-glow)}
+.star{color:var(--neon);font-weight:800;font-size:12.5px;margin-right:6px;white-space:nowrap}
+
 /* 인원 칩 */
 .n{display:inline-flex;align-items:baseline;gap:1px;font-weight:800;font-variant-numeric:tabular-nums;border-radius:8px;padding:2px 9px;font-size:17px;line-height:1.3;white-space:nowrap}
 .n small{font-size:12px;font-weight:700;opacity:.8}
@@ -69,6 +80,7 @@ td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
 tbody tr.row{cursor:pointer}
 tbody tr.row:hover td{background:var(--sunk)}
 tbody tr.row.open td{background:var(--brand-soft)}
+tbody tr.row.rep td:first-child{box-shadow:inset 3px 0 0 var(--neon)}
 td.nw{white-space:nowrap}
 td.time{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
 td.title b{font-weight:700;display:block;line-height:1.4}
@@ -136,12 +148,13 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
 .cell.c0{background:#ffffff} .cell.c1{background:#e3f5e9} .cell.c2{background:#b9e5c8} .cell.c3{background:#86cfa1} .cell.c4{background:#4b5563;border-color:#4b5563;color:#fff}
 .cell.c4 .te,.cell.c4 .subj{color:#e5e7eb!important}
 .cell:hover{border-color:var(--ink)}
+.cell.rep,.cell.rep:hover{border-color:var(--neon);box-shadow:0 0 0 1px var(--neon),0 0 10px var(--neon-glow)}
 .cell .tm{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;padding-right:52px}
 .cell .n{position:absolute;top:7px;right:7px;font-size:16px;padding:1px 8px;background:var(--card)}
 .cell.c0 .n{color:var(--zero)} .cell.c1 .n,.cell.c2 .n,.cell.c3 .n{color:#166534} .cell.c4 .n{color:#374151}
 .cell .subrow{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .badge{font-size:11px;font-weight:800;border-radius:5px;padding:1px 6px;color:#fff;white-space:nowrap}
-.badge.yes{background:var(--ok)} .badge.no{background:var(--full)}
+.badge.yes{background:var(--ok)} .badge.no{background:var(--full)} .badge.hold{background:var(--zero)}
 .cell{height:124px;align-content:start;overflow:hidden}
 .cell .ti{font-size:13px;font-weight:700;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
 .cell .te{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -174,6 +187,7 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
 .alt:hover{border-color:var(--ink)}
 .alt small{font-weight:500;color:var(--muted);margin-left:4px}
 .alt.s1{background:var(--warn-soft)} .alt.s2{background:var(--ok-soft)} .alt.s4{background:var(--full-soft);color:var(--full)}
+.alt.rep{border-color:var(--neon)}
 @media (max-width:760px){.ph{flex-wrap:wrap}.alts{order:3;flex-basis:100%;justify-items:start}.alts .ar{justify-content:flex-start}}
 /* 내 신청 명단 */
 .mybtn{border:1px solid var(--brand);background:var(--card);color:var(--brand);border-radius:999px;padding:4px 14px;font-weight:700;font-size:14px;cursor:pointer}
@@ -206,7 +220,7 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
 
   <section class="card">
     <h2>수업 찾기</h2>
-    <p class="hint">과목을 고르면 그 과목에 있는 수업 유형만 보입니다.</p>
+    <p class="hint">처음에는 <b>★ 대표 강좌</b>만 보입니다. 대표 강좌를 먼저 안내하고, 다른 수업은 <b>[강조 보기 제외]</b>를 눌러 찾으세요. 과목을 고르면 그 과목에 있는 수업 유형만 보입니다.</p>
     <div class="filters" id="filters"></div>
   </section>
 
@@ -220,6 +234,7 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
       <span><i style="background:#86cfa1"></i>3명</span>
       <span><i style="background:#4b5563"></i>4명 · 배정 완료</span>
       <span><span class="badge yes">배정가능</span><span class="badge no">배정불가</span></span>
+      <span><i style="background:#fff;border:1px solid var(--neon);box-shadow:0 0 6px var(--neon-glow)"></i>대표 강좌</span>
     </div>
     <div class="weekbox"><div class="week" id="week"></div></div>
   </section>
@@ -271,7 +286,7 @@ const short = t => t.replace(/✨/g,"").replace(/\s*\([^)]*\)\s*/g," ").replace(
 
 let data = null;            // {cap,min,slots,info,people}
 let lastLoad = 0, busy = false, loadFail = false;
-const F = {subject:"전체", type:"전체", day:"전체", period:"전체", q:"", open:false};
+const F = {subject:"전체", type:"전체", day:"전체", period:"전체", q:"", open:false, rep:true};   // rep: true = 대표 강좌만, false = 강조 보기 제외
 let openId = null, openWhere = null, cancelK = null, panelMsg = null, showAll = false;
 const ME_KEY = "ongong-counselor";
 let me = ""; try{ me = localStorage.getItem(ME_KEY) || ""; }catch(e){}
@@ -285,28 +300,43 @@ const lvl = n => n >= CAP() ? "s4" : n >= MIN() ? "s2" : n >= 1 ? "s1" : "s0";
 const lvlText = n => n >= CAP() ? "마감" : n >= MIN() ? "개설 가능" : n >= 1 ? "개설 미달" : "신청 없음";
 const info = t => (data && data.info && data.info[t]) || {one:"", script:[]};
 const slotById = id => data && data.slots.find(s=>s.id===id);
+const hasRep = () => !!data && data.slots.some(s=>s.rep);
+// 지금 보기(대표 강좌 / 강조 보기 제외)에 들어가는 회차. 대표 강좌가 하나도 없으면 전체
+const pool = () => !data ? [] : !hasRep() ? data.slots : data.slots.filter(s=>!!s.rep === F.rep);
+const repMark = s => s.rep ? `<span class="star">★ 대표</span>` : "";
 
 /* ───────── 필터 ───────── */
-function subjects(){ const have = new Set(data ? data.slots.map(s=>s.subj) : []); return [...SUBJ_ORDER.filter(s=>have.has(s)), ...[...have].filter(s=>!SUBJ_ORDER.includes(s))]; }
+function subjects(){ const have = new Set(pool().map(s=>s.subj)); return [...SUBJ_ORDER.filter(s=>have.has(s)), ...[...have].filter(s=>!SUBJ_ORDER.includes(s))]; }
 function typesFor(subj){
   if(!data) return [];
-  return [...new Set(data.slots.filter(s=>subj==="전체" || s.subj===subj).map(s=>s.type).filter(Boolean))];
+  return [...new Set(pool().filter(s=>subj==="전체" || s.subj===subj).map(s=>s.type).filter(Boolean))];
 }
 function chips(key, opts){
   return ["전체",...opts].map(o=>`<button class="chip" type="button" data-f="${key}" data-v="${esc(o)}" aria-pressed="${F[key]===o}">${esc(o)}</button>`).join("");
 }
+function viewBar(){
+  if(!hasRep()) return "";
+  const nRep = data.slots.filter(s=>s.rep).length;
+  return `<div class="viewbar">
+    <button class="vbtn rep" type="button" data-act="view" data-v="rep" aria-pressed="${F.rep}">★ 대표 강좌<small>${nRep}개 회차</small></button>
+    <button class="vbtn" type="button" data-act="view" data-v="rest" aria-pressed="${!F.rep}">강조 보기 제외<small>${data.slots.length - nRep}개 회차</small></button>
+    <span class="cntline">${F.rep ? "대표 강좌를 먼저 안내해 주세요." : "대표 강좌가 아닌 회차만 보고 있습니다."}</span>
+  </div>`;
+}
 function renderFilters(){
+  if(F.subject !== "전체" && data && !subjects().includes(F.subject)) F.subject = "전체";
   const types = typesFor(F.subject);
   if(F.type !== "전체" && !types.includes(F.type)) F.type = "전체";
   // 지금 고른 과목·유형(·시간대/요일)에 실제 수업이 있는 요일·시간대만 버튼으로 보여줌
-  const pool = data ? data.slots.filter(s=>(F.subject==="전체" || s.subj===F.subject) && (F.type==="전체" || s.type===F.type)) : [];
+  const pl = pool().filter(s=>(F.subject==="전체" || s.subj===F.subject) && (F.type==="전체" || s.type===F.type));
   const inPeriod = (s, pn) => { const p = PERIODS.find(x=>x.n===pn), m = toMin(s.s); return m>=p.a && m<p.b; };
-  const days = DAYS.filter(d=>pool.some(s=>s.d===d && (F.period==="전체" || inPeriod(s, F.period))));
+  const days = DAYS.filter(d=>pl.some(s=>s.d===d && (F.period==="전체" || inPeriod(s, F.period))));
   if(F.day !== "전체" && !days.includes(F.day)) F.day = "전체";
-  const periods = PERIODS.map(p=>p.n).filter(pn=>pool.some(s=>inPeriod(s, pn) && (F.day==="전체" || s.d===F.day)));
+  const periods = PERIODS.map(p=>p.n).filter(pn=>pl.some(s=>inPeriod(s, pn) && (F.day==="전체" || s.d===F.day)));
   if(F.period !== "전체" && !periods.includes(F.period)) F.period = "전체";
   const typeRow = types.length > 1 ? `<div class="fgroup"><span class="lbl">수업 유형</span>${chips("type", types)}</div>` : "";
   $("#filters").innerHTML = `
+    ${viewBar()}
     <div class="fgroup"><span class="lbl">과목</span>${chips("subject", subjects())}</div>
     ${typeRow}
     <div class="fgroup"><span class="lbl">요일</span>${chips("day", data ? days : DAYS)}</div>
@@ -321,12 +351,12 @@ function renderFilters(){
 function filtered(){
   if(!data) return [];
   const q = F.q.trim();
-  return data.slots.filter(s=>{
+  return pool().filter(s=>{
     if(F.subject!=="전체" && s.subj!==F.subject) return false;
     if(F.type!=="전체" && s.type!==F.type) return false;
     if(F.day!=="전체" && s.d!==F.day) return false;
     if(F.period!=="전체"){ const p = PERIODS.find(p=>p.n===F.period), m = toMin(s.s); if(!(m>=p.a && m<p.b)) return false; }
-    if(F.open && count(s.id) >= CAP()) return false;
+    if(F.open && (count(s.id) >= CAP() || s.hold)) return false;
     if(q && !(s.title + " " + short(s.title) + " " + s.teacher).includes(q)) return false;
     return true;
   });
@@ -337,7 +367,7 @@ function countCell(n){ return `<span class="${lvl(n)}"><span class="n">${n}<smal
 function renderList(list){
   const box = $("#list");
   if(!data){ box.innerHTML = `<div class="empty">시간표를 불러오는 중입니다…</div>`; return; }
-  if(!list.length){ box.innerHTML = `<div class="empty">조건에 맞는 회차가 없습니다. 필터를 바꿔 보세요.</div>`; return; }
+  if(!list.length){ box.innerHTML = `<div class="empty">조건에 맞는 회차가 없습니다. 필터를 바꿔 보세요.${hasRep() ? (F.rep ? " 대표 강좌가 아닌 수업은 [강조 보기 제외]에 있습니다." : " 대표 강좌는 [★ 대표 강좌]에 있습니다.") : ""}</div>`; return; }
   const sorted = [...list].sort((a,b)=>{
     const na = count(a.id), nb = count(b.id), fa = na>=CAP(), fb = nb>=CAP();
     return (fa-fb) || (nb-na) || (DAYS.indexOf(a.d)-DAYS.indexOf(b.d)) || (toMin(a.s)-toMin(b.s));
@@ -346,14 +376,14 @@ function renderList(list){
   const shown = showAll ? sorted : sorted.slice(0, Math.max(LIMIT, sorted.findIndex(s=>s.id===openId)+1));
   const rows = shown.map(s=>{
     const n = count(s.id), open = openId===s.id;
-    return `<tr class="row ${open?"open":""}" data-open="${s.id}" tabindex="0" aria-expanded="${open}">
+    return `<tr class="row ${open?"open":""} ${s.rep?"rep":""}" data-open="${s.id}" tabindex="0" aria-expanded="${open}">
       <td class="nw"><span class="typ">${esc(s.type)}</span></td>
       <td class="nw"><b>${esc(s.d)}</b></td>
       <td class="time">${esc(s.s)}~${esc(s.e)}</td>
-      <td class="title"><span class="subj sj-${SKEY[s.subj]||""}">${esc(s.subj)}</span><b>${esc(s.title)}</b></td>
+      <td class="title">${repMark(s)}<span class="subj sj-${SKEY[s.subj]||""}">${esc(s.subj)}</span><b>${esc(s.title)}</b></td>
       <td class="sum">${esc(info(s.title).one)}</td>
       <td class="nw">${esc(s.teacher)}</td>
-      <td class="cnt">${countCell(n)}</td>
+      <td class="cnt">${s.hold ? `<span class="s0"><span class="st">신규 신청 마감</span></span>` : countCell(n)}</td>
     </tr>`;
   }).join("");
   box.innerHTML = `<div class="tblbox"><table>
@@ -365,10 +395,10 @@ function renderList(list){
 /* ───────── 같은 선생님의 다른 회차 (눌러서 바로 이동) ───────── */
 const byTime = (a,b)=>(DAYS.indexOf(a.d)-DAYS.indexOf(b.d)) || (toMin(a.s)-toMin(b.s));
 function altsHTML(s){
-  const mine = data.slots.filter(x=>x.teacher===s.teacher && x.id!==s.id).sort(byTime);
+  const mine = data.slots.filter(x=>x.teacher===s.teacher && x.id!==s.id && !x.hold).sort(byTime);
   const same = mine.filter(x=>x.title===s.title);
   const chip = (x, withTitle)=>{ const n = count(x.id);
-    return `<button class="alt ${lvl(n)}" type="button" data-act="goto" data-id="${x.id}" title="${esc(x.title)}">${esc(x.d)} ${esc(x.s)}~${esc(x.e)} (${n}/${CAP()})${withTitle?`<small>${esc(short(x.title))}</small>`:""}</button>`; };
+    return `<button class="alt ${lvl(n)} ${x.rep?"rep":""}" type="button" data-act="goto" data-id="${x.id}" title="${esc(x.title)}">${x.rep?"★ ":""}${esc(x.d)} ${esc(x.s)}~${esc(x.e)} (${n}/${CAP()})${withTitle?`<small>${esc(short(x.title))}</small>`:""}</button>`; };
   if(!same.length) return "";
   return `<div class="alts">
     <span class="ah">같은 수업명 다른 시간대</span><div class="ar">${same.map(x=>chip(x,false)).join("")}</div>
@@ -408,7 +438,7 @@ function toast(text, kind){ const t = $("#toast"); t.textContent = text; t.class
 
 /* ───────── 상담 패널 (목록·시간표 공용) ───────── */
 function panelHTML(s){
-  const n = count(s.id), full = n >= CAP(), ppl = people(s.id), inf = info(s.title);
+  const n = count(s.id), full = n >= CAP(), closed = full || s.hold, ppl = people(s.id), inf = info(s.title);
   const seats = Array.from({length:CAP()},(_,i)=>`<i class="${i<n?"on":""}"></i>`).join("");
   const plist = ppl.length ? ppl.map(p=>`
       <div class="person"><span class="who">${esc(p.n)}<span>${esc(p.p)}</span></span>
@@ -418,9 +448,10 @@ function panelHTML(s){
         <input id="cPhone" type="tel" inputmode="tel" placeholder="010-0000-0000" maxlength="13" aria-label="취소할 신청의 전화번호">
         <button class="pbtn danger" type="submit">신청 취소</button><button class="pbtn" type="button" data-act="cancel-no">그만두기</button></form>` : ""}`).join("")
     : `<div class="empty" style="padding:4px 0">아직 신청자가 없습니다.</div>`;
-  const under = n < MIN() ? `<li class="alert">현재 ${n}명입니다. 2명 미만이라 이대로면 폐강될 수 있으니 꼭 안내해 주세요.</li>` : "";
+  const under = n < MIN() && !s.hold ? `<li class="alert">현재 ${n}명입니다. 2명 미만이라 이대로면 폐강될 수 있으니 꼭 안내해 주세요.</li>` : "";
+  const btnText = s.hold ? "운영이 끝난 회차 · 새 신청을 받지 않습니다" : full ? "정원이 찼습니다 · 다른 회차를 안내해 주세요" : busy ? "처리 중…" : `${esc(s.d)} ${esc(s.s)} 신청하기`;
   return `<div class="panel">
-    <div class="ph"><div><h3>${esc(s.title)}</h3>
+    <div class="ph"><div><h3>${repMark(s)}${esc(s.title)}</h3>
       <div class="meta">${esc(s.d)} ${esc(s.s)}~${esc(s.e)} · ${esc(s.teacher)} 선생님 · ${esc(s.subj)} · ${esc(s.type)}</div></div>
       ${altsHTML(s)}
       <button class="close" type="button" data-act="close">닫기 ✕</button></div>
@@ -436,10 +467,10 @@ function panelHTML(s){
         <div class="box"><h4>입회 신청</h4>
           <form class="reg" id="regForm" data-slot="${s.id}" novalidate>
             <div class="row2">
-              <label class="f">회원 이름<input id="pName" maxlength="20" autocomplete="off" ${full?"disabled":""}></label>
-              <label class="f">전화번호<input id="pPhone" type="tel" inputmode="tel" placeholder="010-0000-0000" maxlength="13" autocomplete="off" ${full?"disabled":""}></label>
+              <label class="f">회원 이름<input id="pName" maxlength="20" autocomplete="off" ${closed?"disabled":""}></label>
+              <label class="f">전화번호<input id="pPhone" type="tel" inputmode="tel" placeholder="010-0000-0000" maxlength="13" autocomplete="off" ${closed?"disabled":""}></label>
             </div>
-            <button class="btn" type="submit" ${full||busy?"disabled":""}>${full ? "정원이 찼습니다 · 다른 회차를 안내해 주세요" : busy ? "처리 중…" : `${esc(s.d)} ${esc(s.s)} 신청하기`}</button>
+            <button class="btn" type="submit" ${closed||busy?"disabled":""}>${btnText}</button>
           </form>
           ${panelMsg ? `<div class="msg ${panelMsg.kind}" role="status">${esc(panelMsg.text)}</div>` : ""}
         </div>
@@ -457,10 +488,11 @@ function renderWeek(list){
     return `<div style="display:grid;gap:7px;align-content:start;min-width:0"><div class="dhd">${d}<small>${ds.length}회</small></div>
       <div class="dlist">${ds.length ? ds.map(s=>{
         const n = count(s.id), full = n >= CAP();
-        return `<button type="button" class="cell c${Math.min(n,4)}" data-modal="${s.id}" title="${esc(s.title)}" aria-label="${esc(`${d} ${s.s} ${s.title} ${s.teacher}, ${n}/${CAP()}명`)}">
+        const badge = s.hold ? `<span class="badge hold">신규 마감</span>` : `<span class="badge ${full?"no":"yes"}">${full?"배정불가":"배정가능"}</span>`;
+        return `<button type="button" class="cell c${Math.min(n,4)} ${s.rep?"rep":""}" data-modal="${s.id}" title="${esc(s.title)}" aria-label="${esc(`${s.rep?"대표 강좌, ":""}${d} ${s.s} ${s.title} ${s.teacher}, ${n}/${CAP()}명`)}">
           <span class="tm">${esc(s.s)}~${esc(s.e)}</span>
           <span class="n">${n}<small>/${CAP()}</small></span>
-          <span class="subrow"><span class="subj sj-${SKEY[s.subj]||""}">${esc(s.subj)}</span><span class="badge ${full?"no":"yes"}">${full?"배정불가":"배정가능"}</span></span>
+          <span class="subrow"><span class="subj sj-${SKEY[s.subj]||""}">${esc(s.subj)}</span>${badge}</span>
           <span class="ti">${esc(short(s.title))}</span>
           <span class="te">${esc(s.teacher)} 선생님</span>
         </button>`;}).join("") : `<div class="dempty">—</div>`}</div></div>`;
@@ -471,10 +503,11 @@ function renderWeek(list){
 function renderIntro(){
   if(!data){ $("#intro").innerHTML = ""; return; }
   const subs = subjects().filter(s=>F.subject==="전체" || s===F.subject);
+  const pl = pool();
   $("#intro").innerHTML = subs.map(sj=>{
-    const titles = [...new Set(data.slots.filter(s=>s.subj===sj).map(s=>s.title))];
+    const titles = [...new Set(pl.filter(s=>s.subj===sj).map(s=>s.title))];
     return `<div class="isub"><h3 class="sj-${SKEY[sj]||""}">${esc(sj)}</h3><div class="ilist">${titles.map(t=>{
-      const ss = data.slots.filter(s=>s.title===t);
+      const ss = pl.filter(s=>s.title===t);
       const days = [...new Set(ss.map(s=>s.d))].sort((a,b)=>DAYS.indexOf(a)-DAYS.indexOf(b)).join("·");
       return `<div class="iitem"><b>${esc(t)}</b><span class="one">${esc(info(t).one)}</span>
         <span class="when">${esc(ss[0].teacher)} 선생님 · ${esc(ss[0].type)} · ${days} · ${ss.length}회차
@@ -550,6 +583,7 @@ document.addEventListener("click", ev=>{
   if(a){
     const act = a.dataset.act;
     if(act==="close") return closePanel();
+    if(act==="view"){ F.rep = a.dataset.v==="rep"; showAll = false; render(); return; }
     if(act==="more"){ showAll = true; render(); return; }
     if(act==="goto"){ openId = a.dataset.id; openWhere = "modal"; cancelK = null; panelMsg = null; render(); $("#modal .close")?.focus(); return; }
     if(act==="my-close"){ myOpen = false; myCancel = null; myMsg = null; render(); return; }
