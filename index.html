@@ -59,6 +59,8 @@ h2{font-size:18px;margin:0 0 4px;font-weight:800;letter-spacing:-.01em}
 .vbtn[aria-pressed="true"] small{color:inherit;opacity:.8}
 .vbtn.rep[aria-pressed="true"]{border-color:var(--neon);background:var(--neon);color:#fff;box-shadow:0 0 12px var(--neon-glow)}
 .star{color:var(--neon);font-weight:800;font-size:12.5px;margin-right:6px;white-space:nowrap}
+.lv{display:inline-block;font-size:12px;font-weight:700;color:#3949ab;background:#e8eaf6;border-radius:6px;padding:1px 7px;margin-left:6px;white-space:nowrap;vertical-align:1px}
+.lv.none{color:var(--muted);background:var(--sunk);font-weight:500}
 
 /* 인원 칩 */
 .n{display:inline-flex;align-items:baseline;gap:1px;font-weight:800;font-variant-numeric:tabular-nums;border-radius:8px;padding:2px 9px;font-size:17px;line-height:1.3;white-space:nowrap}
@@ -220,7 +222,7 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
 
   <section class="card">
     <h2>수업 찾기</h2>
-    <p class="hint">처음에는 <b>★ 대표 강좌</b>만 보입니다. 대표 강좌를 먼저 안내하고, 다른 수업은 <b>[강조 보기 제외]</b>를 눌러 찾으세요. 과목을 고르면 그 과목에 있는 수업 유형만 보입니다.</p>
+    <p class="hint">처음에는 <b>★ 대표 강좌</b>만 보입니다. 대표 강좌를 먼저 안내하고, 다른 수업은 <b>[강조 보기 제외]</b>를 눌러 찾으세요. 과목을 고르면 그 과목에 있는 수업 유형만 보입니다. <b>단계</b>를 누르면 그 단계 회원을 받는 회차가 보입니다. (예: A~C 수업은 A·B·C 어느 것을 눌러도 나옵니다)</p>
     <div class="filters" id="filters"></div>
   </section>
 
@@ -274,6 +276,8 @@ const DAYS = ["월","화","수","목","금","토","일"];
 const SUBJ_ORDER = ["일본어","중국어","영어","수학","과학"];
 const SKEY = {"일본어":"ja","중국어":"zh","영어":"en","수학":"math","과학":"sci"};
 const PERIODS = [{n:"오전",a:0,b:720},{n:"오후",a:720,b:1080},{n:"저녁",a:1080,b:1440}];
+const LEVELS = ["3A","2A","A","B","C","D","E","F","G","H","I","J 이상"];   // 낮은 단계 → 높은 단계
+const LV_NONE = "단계 미정";
 const MUST = [
   "정원은 4명이며, <b>2명 이상</b> 신청해야 수업이 개설됩니다. 2명 미만이면 폐강될 수 있습니다.",
   "개설된 수업도 <b>다음 달 수업 시작 전</b>에 다른 분이 신청을 취소하면 폐강되거나, 다른 시간 수업으로 합쳐질 수 있습니다."
@@ -286,7 +290,7 @@ const short = t => t.replace(/✨/g,"").replace(/\s*\([^)]*\)\s*/g," ").replace(
 
 let data = null;            // {cap,min,slots,info,people}
 let lastLoad = 0, busy = false, loadFail = false;
-const F = {subject:"전체", type:"전체", day:"전체", period:"전체", q:"", open:false, rep:true};   // rep: true = 대표 강좌만, false = 강조 보기 제외
+const F = {subject:"전체", type:"전체", day:"전체", period:"전체", lv:"전체", q:"", open:false, rep:true};   // rep: true = 대표 강좌만, false = 강조 보기 제외
 let openId = null, openWhere = null, cancelK = null, panelMsg = null, showAll = false;
 const ME_KEY = "ongong-counselor";
 let me = ""; try{ me = localStorage.getItem(ME_KEY) || ""; }catch(e){}
@@ -304,6 +308,34 @@ const hasRep = () => !!data && data.slots.some(s=>s.rep);
 // 지금 보기(대표 강좌 / 강조 보기 제외)에 들어가는 회차. 대표 강좌가 하나도 없으면 전체
 const pool = () => !data ? [] : !hasRep() ? data.slots : data.slots.filter(s=>!!s.rep === F.rep);
 const repMark = s => s.rep ? `<span class="star">★ 대표</span>` : "";
+
+/* ───────── 단계: 시트 '단계' 칸(A~C, 2A~B, B, J 이상, 전체 …) → LEVELS 안의 [시작, 끝] 번호 ───────── */
+const LAST = LEVELS.length - 1;
+function lvRange(raw){
+  let t = String(raw ?? "").toUpperCase().replace(/\s+/g,"").replace(/단계/g,"").replace(/[-–—〜～]/g,"~");
+  if(!t) return null;
+  if(/^(전체|무관|ALL)$/.test(t)) return [0, LAST];
+  const up = /(이상|~)$/.test(t), down = /^~|이하$/.test(t);
+  const ix = t.replace(/이상|이하/g,"").split(/[~,·/]/).filter(Boolean).map(x => /^[J-Z]$/.test(x) ? LAST : LEVELS.indexOf(x));
+  if(!ix.length || ix.some(i=>i<0)) return null;
+  return [down ? 0 : Math.min(...ix), up ? LAST : Math.max(...ix)];
+}
+// 화면에 보일 단계 이름: "A~C", "B", "D 이상", "전체 단계". 읽지 못한 값은 적힌 그대로
+function lvLabel(s){
+  if(!s.lv) return "";
+  const r = lvRange(s.lv);
+  if(!r) return s.lv;
+  const [a,b] = r;
+  return a===0 && b===LAST ? "전체 단계" : a===b ? LEVELS[a] : b===LAST ? `${LEVELS[a].replace(" 이상","")} 이상` : `${LEVELS[a]}~${LEVELS[b]}`;
+}
+const lvMark = s => s.lv ? `<span class="lv">${esc(lvLabel(s))}</span>` : `<span class="lv none">${LV_NONE}</span>`;
+const hasLv = () => !!data && data.slots.some(s=>s.lv);
+function lvMatch(s, pick){
+  if(pick==="전체") return true;
+  if(pick===LV_NONE) return !s.lv;
+  const r = lvRange(s.lv), i = LEVELS.indexOf(pick);
+  return !!r && r[0] <= i && i <= r[1];
+}
 
 /* ───────── 필터 ───────── */
 function subjects(){ const have = new Set(pool().map(s=>s.subj)); return [...SUBJ_ORDER.filter(s=>have.has(s)), ...[...have].filter(s=>!SUBJ_ORDER.includes(s))]; }
@@ -335,12 +367,17 @@ function renderFilters(){
   const periods = PERIODS.map(p=>p.n).filter(pn=>pl.some(s=>inPeriod(s, pn) && (F.day==="전체" || s.d===F.day)));
   if(F.period !== "전체" && !periods.includes(F.period)) F.period = "전체";
   const typeRow = types.length > 1 ? `<div class="fgroup"><span class="lbl">수업 유형</span>${chips("type", types)}</div>` : "";
+  // 단계: 시트에 단계가 하나라도 적혀 있을 때만 보여 줌. 3A~J 이상은 늘 전부, '단계 미정'은 빈 회차가 있을 때만
+  const lvOpts = hasLv() ? [...LEVELS, ...(data.slots.some(s=>!s.lv) ? [LV_NONE] : [])] : [];
+  if(!lvOpts.includes(F.lv)) F.lv = "전체";
+  const lvRow = lvOpts.length ? `<div class="fgroup"><span class="lbl">단계</span>${chips("lv", lvOpts)}</div>` : "";
   $("#filters").innerHTML = `
     ${viewBar()}
     <div class="fgroup"><span class="lbl">과목</span>${chips("subject", subjects())}</div>
     ${typeRow}
     <div class="fgroup"><span class="lbl">요일</span>${chips("day", data ? days : DAYS)}</div>
     <div class="fgroup"><span class="lbl">시간대</span>${chips("period", data ? periods : PERIODS.map(p=>p.n))}</div>
+    ${lvRow}
     <div class="frow">
       <input type="search" id="q" placeholder="강의명·선생님 검색" aria-label="강의명·선생님 검색">
       <label class="toggle"><input type="checkbox" id="fopen" ${F.open?"checked":""}> 신청 가능한 회차만</label>
@@ -356,6 +393,7 @@ function filtered(){
     if(F.type!=="전체" && s.type!==F.type) return false;
     if(F.day!=="전체" && s.d!==F.day) return false;
     if(F.period!=="전체"){ const p = PERIODS.find(p=>p.n===F.period), m = toMin(s.s); if(!(m>=p.a && m<p.b)) return false; }
+    if(!lvMatch(s, F.lv)) return false;
     if(F.open && (count(s.id) >= CAP() || s.hold)) return false;
     if(q && !(s.title + " " + short(s.title) + " " + s.teacher).includes(q)) return false;
     return true;
@@ -380,7 +418,7 @@ function renderList(list){
       <td class="nw"><span class="typ">${esc(s.type)}</span></td>
       <td class="nw"><b>${esc(s.d)}</b></td>
       <td class="time">${esc(s.s)}~${esc(s.e)}</td>
-      <td class="title">${repMark(s)}<span class="subj sj-${SKEY[s.subj]||""}">${esc(s.subj)}</span><b>${esc(s.title)}</b></td>
+      <td class="title">${repMark(s)}<span class="subj sj-${SKEY[s.subj]||""}">${esc(s.subj)}</span><b>${esc(s.title)}</b>${hasLv() ? lvMark(s) : ""}</td>
       <td class="sum">${esc(info(s.title).one)}</td>
       <td class="nw">${esc(s.teacher)}</td>
       <td class="cnt">${s.hold ? `<span class="s0"><span class="st">신규 신청 마감</span></span>` : countCell(n)}</td>
@@ -452,7 +490,7 @@ function panelHTML(s){
   const btnText = s.hold ? "운영이 끝난 회차 · 새 신청을 받지 않습니다" : full ? "정원이 찼습니다 · 다른 회차를 안내해 주세요" : busy ? "처리 중…" : `${esc(s.d)} ${esc(s.s)} 신청하기`;
   return `<div class="panel">
     <div class="ph"><div><h3>${repMark(s)}${esc(s.title)}</h3>
-      <div class="meta">${esc(s.d)} ${esc(s.s)}~${esc(s.e)} · ${esc(s.teacher)} 선생님 · ${esc(s.subj)} · ${esc(s.type)}</div></div>
+      <div class="meta">${esc(s.d)} ${esc(s.s)}~${esc(s.e)} · ${esc(s.teacher)} 선생님 · ${esc(s.subj)} · ${esc(s.type)} · 받는 단계 <b>${esc(lvLabel(s) || LV_NONE)}</b></div></div>
       ${altsHTML(s)}
       <button class="close" type="button" data-act="close">닫기 ✕</button></div>
     <div class="pgrid">
@@ -494,7 +532,7 @@ function renderWeek(list){
           <span class="n">${n}<small>/${CAP()}</small></span>
           <span class="subrow"><span class="subj sj-${SKEY[s.subj]||""}">${esc(s.subj)}</span>${badge}</span>
           <span class="ti">${esc(short(s.title))}</span>
-          <span class="te">${esc(s.teacher)} 선생님</span>
+          <span class="te">${esc(s.teacher)} 선생님${s.lv ? ` · <b>${esc(lvLabel(s))}</b>` : ""}</span>
         </button>`;}).join("") : `<div class="dempty">—</div>`}</div></div>`;
   }).join("");
 }
@@ -591,7 +629,7 @@ document.addEventListener("click", ev=>{
     if(act==="my-cancel-no"){ myCancel = null; render(); return; }
     if(act==="cancel-open"){ cancelK = Number(a.dataset.k); panelMsg = null; render(); $("#cPhone")?.focus(); return; }
     if(act==="cancel-no"){ cancelK = null; render(); return; }
-    if(act==="show"){ F.q = short(a.dataset.t); F.subject = "전체"; F.type = "전체"; F.day = "전체"; F.period = "전체"; render();
+    if(act==="show"){ F.q = short(a.dataset.t); F.subject = "전체"; F.type = "전체"; F.day = "전체"; F.period = "전체"; F.lv = "전체"; render();
       document.querySelector("#list").scrollIntoView({behavior:"smooth", block:"start"}); return; }
     return;
   }
