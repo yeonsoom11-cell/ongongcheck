@@ -50,7 +50,7 @@ h2{font-size:18px;margin:0 0 4px;font-weight:800;letter-spacing:-.01em}
 .toggle input{width:16px;height:16px;accent-color:var(--brand)}
 .cntline{font-size:13.5px;color:var(--muted)}
 
-/* 대표 강좌 / 강조 보기 제외 */
+/* 대표 강좌 / 전체 강좌 보기 */
 .viewbar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--line)}
 .vbtn{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:7px 16px;cursor:pointer;font-weight:800;font-size:15px}
 .vbtn small{font-weight:700;color:var(--muted);margin-left:6px;font-size:12.5px}
@@ -222,7 +222,7 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
 
   <section class="card">
     <h2>수업 찾기</h2>
-    <p class="hint">처음에는 <b>★ 대표 강좌</b>만 보입니다. 대표 강좌를 먼저 안내하고, 다른 수업은 <b>[강조 보기 제외]</b>를 눌러 찾으세요. 과목을 고르면 그 과목에 있는 수업 유형만 보입니다. <b>단계</b>를 누르면 그 단계 회원을 받는 회차가 보입니다. (예: A~C 수업은 A·B·C 어느 것을 눌러도 나옵니다)</p>
+    <p class="hint">처음에는 <b>★ 대표 강좌</b>만 보입니다. 대표 강좌를 먼저 안내하고, 다른 수업은 <b>[전체 강좌 보기]</b>를 눌러 찾으세요. 과목을 고르면 그 과목에 있는 수업 유형만 보입니다. <b>단계</b>를 누르면 그 단계 회원을 받는 회차가 보입니다. (예: A~C 수업은 A·B·C 어느 것을 눌러도 나옵니다)</p>
     <div class="filters" id="filters"></div>
   </section>
 
@@ -290,7 +290,7 @@ const short = t => t.replace(/✨/g,"").replace(/\s*\([^)]*\)\s*/g," ").replace(
 
 let data = null;            // {cap,min,slots,info,people}
 let lastLoad = 0, busy = false, loadFail = false;
-const F = {subject:"전체", type:"전체", day:"전체", period:"전체", lv:"전체", q:"", open:false, rep:true};   // rep: true = 대표 강좌만, false = 강조 보기 제외
+const F = {subject:"전체", type:"전체", day:"전체", period:"전체", lv:"전체", q:"", open:false, rep:true};   // rep: true = 대표 강좌만, false = 전체 강좌
 let openId = null, openWhere = null, cancelK = null, panelMsg = null, showAll = false;
 const ME_KEY = "ongong-counselor";
 let me = ""; try{ me = localStorage.getItem(ME_KEY) || ""; }catch(e){}
@@ -305,8 +305,8 @@ const lvlText = n => n >= CAP() ? "마감" : n >= MIN() ? "개설 가능" : n >=
 const info = t => (data && data.info && data.info[t]) || {one:"", script:[]};
 const slotById = id => data && data.slots.find(s=>s.id===id);
 const hasRep = () => !!data && data.slots.some(s=>s.rep);
-// 지금 보기(대표 강좌 / 강조 보기 제외)에 들어가는 회차. 대표 강좌가 하나도 없으면 전체
-const pool = () => !data ? [] : !hasRep() ? data.slots : data.slots.filter(s=>!!s.rep === F.rep);
+// 지금 보기(대표 강좌 / 전체 강좌)에 들어가는 회차. 대표 강좌가 하나도 없으면 전체
+const pool = () => !data ? [] : !hasRep() || !F.rep ? data.slots : data.slots.filter(s=>s.rep);
 const repMark = s => s.rep ? `<span class="star">★ 대표</span>` : "";
 
 /* ───────── 단계: 시트 '단계' 칸(A~C, 2A~B, B, J 이상, 전체 …) → LEVELS 안의 [시작, 끝] 번호 ───────── */
@@ -351,8 +351,8 @@ function viewBar(){
   const nRep = data.slots.filter(s=>s.rep).length;
   return `<div class="viewbar">
     <button class="vbtn rep" type="button" data-act="view" data-v="rep" aria-pressed="${F.rep}">★ 대표 강좌<small>${nRep}개 회차</small></button>
-    <button class="vbtn" type="button" data-act="view" data-v="rest" aria-pressed="${!F.rep}">강조 보기 제외<small>${data.slots.length - nRep}개 회차</small></button>
-    <span class="cntline">${F.rep ? "대표 강좌를 먼저 안내해 주세요." : "대표 강좌가 아닌 회차만 보고 있습니다."}</span>
+    <button class="vbtn" type="button" data-act="view" data-v="all" aria-pressed="${!F.rep}">전체 강좌 보기<small>${data.slots.length}개 회차</small></button>
+    <span class="cntline">${F.rep ? "대표 강좌를 먼저 안내해 주세요." : "전체 강좌를 보고 있습니다. ★ 표시가 대표 강좌입니다."}</span>
   </div>`;
 }
 function renderFilters(){
@@ -405,7 +405,7 @@ function countCell(n){ return `<span class="${lvl(n)}"><span class="n">${n}<smal
 function renderList(list){
   const box = $("#list");
   if(!data){ box.innerHTML = `<div class="empty">시간표를 불러오는 중입니다…</div>`; return; }
-  if(!list.length){ box.innerHTML = `<div class="empty">조건에 맞는 회차가 없습니다. 필터를 바꿔 보세요.${hasRep() ? (F.rep ? " 대표 강좌가 아닌 수업은 [강조 보기 제외]에 있습니다." : " 대표 강좌는 [★ 대표 강좌]에 있습니다.") : ""}</div>`; return; }
+  if(!list.length){ box.innerHTML = `<div class="empty">조건에 맞는 회차가 없습니다. 필터를 바꿔 보세요.${hasRep() && F.rep ? " 대표 강좌가 아닌 수업은 [전체 강좌 보기]에서 찾으세요." : ""}</div>`; return; }
   const sorted = [...list].sort((a,b)=>{
     const na = count(a.id), nb = count(b.id), fa = na>=CAP(), fb = nb>=CAP();
     return (fa-fb) || (nb-na) || (DAYS.indexOf(a.d)-DAYS.indexOf(b.d)) || (toMin(a.s)-toMin(b.s));
