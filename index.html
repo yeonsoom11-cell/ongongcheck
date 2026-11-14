@@ -278,6 +278,13 @@ const SKEY = {"일본어":"ja","중국어":"zh","영어":"en","수학":"math","�
 const PERIODS = [{n:"오전",a:0,b:720},{n:"오후",a:720,b:1080},{n:"저녁",a:1080,b:1440}];
 const LEVELS = ["3A","2A","A","B","C","D","E","F","G","H","I","J 이상"];   // 낮은 단계 → 높은 단계
 const LV_NONE = "단계 미정";
+// 선생님 → 하이브 (동명이인 없음. 새 선생님이 오면 여기에 한 줄 추가)
+const HIVES = ["하이브1","하이브2","하이브3","하이브6"];
+const HIVE = {
+  "이수련":"하이브1", "이지혜":"하이브1", "노경남":"하이브1", "박서진":"하이브6", "김영표":"하이브2", "김진숙":"하이브1",
+  "구미현":"하이브6", "안정윤":"하이브1", "노혜진":"하이브1", "민성희":"하이브6", "백연지":"하이브3", "최경미":"하이브1",
+  "이서현":"하이브2", "이지은":"하이브3", "박경희":"하이브1", "권아람":"하이브3"
+};
 const MUST = [
   "정원은 4명이며, <b>2명 이상</b> 신청해야 수업이 개설됩니다. 2명 미만이면 폐강될 수 있습니다.",
   "개설된 수업도 <b>다음 달 수업 시작 전</b>에 다른 분이 신청을 취소하면 폐강되거나, 다른 시간 수업으로 합쳐질 수 있습니다."
@@ -290,7 +297,7 @@ const short = t => t.replace(/✨/g,"").replace(/\s*\([^)]*\)\s*/g," ").replace(
 
 let data = null;            // {cap,min,slots,info,people}
 let lastLoad = 0, busy = false, loadFail = false;
-const F = {subject:"전체", type:"전체", day:"전체", period:"전체", lv:"전체", q:"", open:false, rep:true};   // rep: true = 대표 강좌만, false = 전체 강좌
+const F = {subject:"전체", type:"전체", day:"전체", period:"전체", hive:"전체", lv:"전체", q:"", open:false, rep:true};   // rep: true = 대표 강좌만, false = 전체 강좌
 let openId = null, openWhere = null, cancelK = null, panelMsg = null, showAll = false;
 const ME_KEY = "ongong-counselor";
 let me = ""; try{ me = localStorage.getItem(ME_KEY) || ""; }catch(e){}
@@ -377,6 +384,7 @@ function renderFilters(){
     ${typeRow}
     <div class="fgroup"><span class="lbl">요일</span>${chips("day", data ? days : DAYS)}</div>
     <div class="fgroup"><span class="lbl">시간대</span>${chips("period", data ? periods : PERIODS.map(p=>p.n))}</div>
+    <div class="fgroup"><span class="lbl">하이브</span>${chips("hive", HIVES)}</div>
     ${lvRow}
     <div class="frow">
       <input type="search" id="q" placeholder="강의명·선생님 검색" aria-label="강의명·선생님 검색">
@@ -393,6 +401,7 @@ function filtered(){
     if(F.type!=="전체" && s.type!==F.type) return false;
     if(F.day!=="전체" && s.d!==F.day) return false;
     if(F.period!=="전체"){ const p = PERIODS.find(p=>p.n===F.period), m = toMin(s.s); if(!(m>=p.a && m<p.b)) return false; }
+    if(F.hive!=="전체" && HIVE[s.teacher]!==F.hive) return false;
     if(!lvMatch(s, F.lv)) return false;
     if(F.open && (count(s.id) >= CAP() || s.hold)) return false;
     if(q && !(s.title + " " + short(s.title) + " " + s.teacher).includes(q)) return false;
@@ -629,7 +638,7 @@ document.addEventListener("click", ev=>{
     if(act==="my-cancel-no"){ myCancel = null; render(); return; }
     if(act==="cancel-open"){ cancelK = Number(a.dataset.k); panelMsg = null; render(); $("#cPhone")?.focus(); return; }
     if(act==="cancel-no"){ cancelK = null; render(); return; }
-    if(act==="show"){ F.q = short(a.dataset.t); F.subject = "전체"; F.type = "전체"; F.day = "전체"; F.period = "전체"; F.lv = "전체"; render();
+    if(act==="show"){ F.q = short(a.dataset.t); F.subject = "전체"; F.type = "전체"; F.day = "전체"; F.period = "전체"; F.hive = "전체"; F.lv = "전체"; render();
       document.querySelector("#list").scrollIntoView({behavior:"smooth", block:"start"}); return; }
     return;
   }
