@@ -680,7 +680,7 @@ document.addEventListener("submit", async ev=>{
     const name = $("#pName").value.trim(), phone = $("#pPhone").value.trim();
     if(name.length < 2) return fail("회원 이름을 2자 이상 입력해 주세요.");
     if(!PHONE.test(phone)) return fail("전화번호를 010-0000-0000 형식으로 입력해 주세요.");
-    body = {action:"apply", slot:openId, name, phone, counselor:me};
+    body = {action:"apply", slot:openId, name, phone, counselor:me, hive: HIVE[slotById(openId)?.teacher] || ""};
   } else {
     const phone = (fromMy ? $("#mPhone") : $("#cPhone")).value.trim();
     if(!PHONE.test(phone)) return fail("신청할 때 입력한 전화번호 전체를 010-0000-0000 형식으로 입력해 주세요.");
