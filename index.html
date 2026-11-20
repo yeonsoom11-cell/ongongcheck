@@ -225,6 +225,12 @@ label.f input{width:100%;font-size:16px;padding:9px 12px;border-radius:10px;bord
     <h2>수업 찾기</h2>
     <p class="hint">처음에는 <b>★ 대표 강좌</b>만 보입니다. 대표 강좌를 먼저 안내하고, 다른 수업은 <b>[전체 강좌 보기]</b>를 눌러 찾으세요. 과목을 고르면 그 과목에 있는 수업 유형만 보입니다. <b>단계</b>를 누르면 그 단계 회원을 받는 회차가 보입니다. (예: A~C 수업은 A·B·C 어느 것을 눌러도 나옵니다)</p>
     <div class="filters" id="filters"></div>
+    <!-- 검색칸은 다시 그리지 않음: 다시 그리면 한글 입력(조합) 중인 글자가 끊김 -->
+    <div class="frow">
+      <input type="search" id="q" placeholder="강의명·선생님 검색" aria-label="강의명·선생님 검색">
+      <label class="toggle"><input type="checkbox" id="fopen"> 신청 가능한 회차만</label>
+      <span class="cntline" id="cntline"></span>
+    </div>
   </section>
 
   <section class="card">
@@ -386,17 +392,12 @@ function renderFilters(){
     <div class="fgroup"><span class="lbl">요일</span>${chips("day", data ? days : DAYS)}</div>
     <div class="fgroup"><span class="lbl">시간대</span>${chips("period", data ? periods : PERIODS.map(p=>p.n))}</div>
     <div class="fgroup"><span class="lbl">하이브</span>${chips("hive", HIVES)}</div>
-    ${lvRow}
-    <div class="frow">
-      <input type="search" id="q" placeholder="강의명·선생님 검색" aria-label="강의명·선생님 검색">
-      <label class="toggle"><input type="checkbox" id="fopen" ${F.open?"checked":""}> 신청 가능한 회차만</label>
-      <span class="cntline" id="cntline"></span>
-    </div>`;
-  $("#q").value = F.q;
+    ${lvRow}`;
 }
 function filtered(){
   if(!data) return [];
-  const q = F.q.trim();
+  const nospace = t => t.replace(/\s+/g,"");
+  const q = nospace(F.q.replace(/선생님/g,""));
   return pool().filter(s=>{
     if(F.subject!=="전체" && s.subj!==F.subject) return false;
     if(F.type!=="전체" && s.type!==F.type) return false;
@@ -405,7 +406,7 @@ function filtered(){
     if(F.hive!=="전체" && HIVE[s.teacher]!==F.hive) return false;
     if(!lvMatch(s, F.lv)) return false;
     if(F.open && (count(s.id) >= CAP() || s.hold)) return false;
-    if(q && !(s.title + " " + short(s.title) + " " + s.teacher).includes(q)) return false;
+    if(q && !nospace(s.title + short(s.title) + s.teacher).includes(q)) return false;
     return true;
   });
 }
@@ -642,7 +643,7 @@ document.addEventListener("click", ev=>{
     if(act==="my-cancel-no"){ myCancel = null; render(); return; }
     if(act==="cancel-open"){ cancelK = Number(a.dataset.k); panelMsg = null; render(); $("#cPhone")?.focus(); return; }
     if(act==="cancel-no"){ cancelK = null; render(); return; }
-    if(act==="show"){ F.q = short(a.dataset.t); F.subject = "전체"; F.type = "전체"; F.day = "전체"; F.period = "전체"; F.hive = "전체"; F.lv = "전체"; render();
+    if(act==="show"){ F.q = $("#q").value = short(a.dataset.t); F.subject = "전체"; F.type = "전체"; F.day = "전체"; F.period = "전체"; F.hive = "전체"; F.lv = "전체"; render();
       document.querySelector("#list").scrollIntoView({behavior:"smooth", block:"start"}); return; }
     return;
   }
